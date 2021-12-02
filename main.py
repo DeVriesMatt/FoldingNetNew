@@ -85,7 +85,7 @@ if __name__ == '__main__':
                           'optimizer_state_dict': optimizer.state_dict(),
                           'epoch': epoch,
                           'loss': running_loss}
-            torch.save(checkpoint, output_dir + 'AE_spheroid_nuclei.pt')
+            torch.save(checkpoint, output_dir + 'FoldingNetNewSphere.pt')
         total_loss += float(loss)
 
         #     scheduler.step(total_loss)
