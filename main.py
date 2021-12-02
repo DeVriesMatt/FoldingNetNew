@@ -4,6 +4,13 @@ import argparse
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import datetime
+import os
+
+
+def create_dir_if_not_exist(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Use DCEC for clustering')
@@ -85,6 +92,8 @@ if __name__ == '__main__':
                           'optimizer_state_dict': optimizer.state_dict(),
                           'epoch': epoch,
                           'loss': running_loss}
+
+            create_dir_if_not_exist(output_dir)
             torch.save(checkpoint, output_dir + 'FoldingNetNewSphere.pt')
         total_loss += float(loss)
 
