@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
             running_loss += float(loss)
             batch_num += 1
-            writer.add_scalar('/Loss' + 'Batch', loss.item(), (i + 1) * (epoch + 1))
+            writer.add_scalar('/Loss' + 'Batch', loss.item()/batch_size, (i + 1) * (epoch + 1))
             lr = np.asarray(optimizer.param_groups[0]['lr'])
 
             if i % 10 == 0:
@@ -97,8 +97,8 @@ if __name__ == '__main__':
                                                                                 num_epochs,
                                                                                 i,
                                                                                 len(dataloader),
-                                                                                loss.item(),
-                                                                                loss_rec.item(),))
+                                                                                loss.item()/batch_size,
+                                                                                loss_rec.item()/batch_size,))
 
         # ===================log========================
         total_loss = running_loss/len(dataloader)

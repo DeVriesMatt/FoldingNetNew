@@ -234,7 +234,6 @@ class DGCNN_Cls_Encoder(nn.Module):
         elif self.task == 'reconstruct':
             return feat, embedding, clustering_out  # (batch_size, 1, feat_dims)
 
-
 class FoldNet_Decoder(nn.Module):
     def __init__(self, num_clusters, num_features, shape):
         super(FoldNet_Decoder, self).__init__()
