@@ -241,7 +241,7 @@ class FoldNet_Decoder(nn.Module):
         self.m = 2025  # 45 * 45.
         self.shape = shape
         self.meshgrid = [[0, 100, 45], [0, 100, 45]]
-        self.sphere = np.load("sphere100.npy")
+        self.sphere = np.load("sphere.npy")
         self.gaussian = np.load("gaussian100.npy")
         self.num_features = num_features
         if self.shape == 'plane':

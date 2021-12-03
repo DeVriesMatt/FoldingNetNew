@@ -39,6 +39,9 @@ class PointCloudDataset(Dataset):
         img_path = os.path.join(self.img_dir, treatment, self.new_df.loc[idx, 'serialNumber'])
         image = PyntCloud.from_file(img_path + '.ply')
         image = torch.tensor(image.points.values)
+        mean = torch.tensor([[13.4828, 26.5144, 24.4187]])
+        std = torch.tensor([[9.2821, 20.4512, 18.9049]])
+        image = (image - mean) / std
         # return encoded label as tensor
         label = self.new_df.loc[idx, 'label_col_enc']
         label = torch.tensor(label)
