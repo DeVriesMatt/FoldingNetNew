@@ -6,6 +6,18 @@ import numpy as np
 import itertools
 
 
+class Flatten(nn.Module):
+    def forward(self, input):
+        '''
+        Note that input.size(0) is usually the batch size.
+        So what it does is that given any input with input.size(0) # of batches,
+        will flatten to be 1 * nb_elements.
+        '''
+        batch_size = input.size(0)
+        out = input.view(batch_size, -1)
+        return out  # (batch_size, *size)
+
+
 def knn(x, k):
     batch_size = x.size(0)
     num_points = x.size(2)
@@ -40,7 +52,6 @@ def local_cov(pts, idx):
     x = torch.matmul(x[:, :, 0].unsqueeze(3), x[:, :, 1].unsqueeze(
         2))  # (batch_size, num_points, 3, 1) * (batch_size, num_points, 1, 3) -> (batch_size, num_points, 3, 3)
     # x = torch.matmul(x[:,:,1:].transpose(3, 2), x[:,:,1:])
-
     x = x.view(batch_size, num_points, 9).transpose(2, 1)  # (batch_size, 9, num_points)
 
     x = torch.cat((pts, x), dim=1)  # (batch_size, 12, num_points)
@@ -145,11 +156,12 @@ class ClusterlingLayer(nn.Module):
 
 
 class DGCNN_Cls_Encoder(nn.Module):
-    def __init__(self, num_clusters):
+    def __init__(self, num_clusters, num_features):
         super(DGCNN_Cls_Encoder, self).__init__()
         self.k = 20
         self.task = 'reconstruct'
         self.num_clusters = num_clusters
+        self.num_features = num_features
         self.bn1 = nn.BatchNorm2d(64)
         self.bn2 = nn.BatchNorm2d(64)
         self.bn3 = nn.BatchNorm2d(128)
@@ -173,9 +185,10 @@ class DGCNN_Cls_Encoder(nn.Module):
                                    nn.LeakyReLU(negative_slope=0.2))
 
         lin_features_len = 512
-        self.embedding = nn.Linear(lin_features_len, self.num_clusters, bias=False)
-        self.deembedding = nn.Linear(self.num_clusters, lin_features_len, bias=False)
-        self.clustering = ClusterlingLayer(lin_features_len, self.num_clusters)
+        self.flatten = Flatten()
+        self.embedding = nn.Linear(lin_features_len, self.num_features, bias=False)
+        self.deembedding = nn.Linear(self.num_features, lin_features_len, bias=False)
+        self.clustering = ClusterlingLayer(self.num_features, self.num_clusters)
 
     def forward(self, x):
         x = x.transpose(2, 1)
@@ -204,14 +217,15 @@ class DGCNN_Cls_Encoder(nn.Module):
         feat = x.unsqueeze(1)  # (batch_size, feat_dims) -> (batch_size, 1, feat_dims)
         # feat = x
         # print(feat.shape)
-        #         embedding = self.embedding(feat)
-        # print(embedding.shape)
+        x = self.flatten(feat)
+        embedding = self.embedding(x)
+        #         print(embedding.shape)
         #         print(embedding.shape)
         #         print(feat.shape)
         #         print(torch.squeeze(feat).shape)
 
-        embedding = feat
-        clustering_input = torch.reshape(torch.squeeze(feat), (batch_size, 512))
+        #         clustering_input = torch.reshape(torch.squeeze(feat),(batch_size, 512))
+        clustering_input = embedding
         clustering_out = self.clustering(clustering_input)
         #         print(clustering_out.shape)
 
@@ -222,13 +236,14 @@ class DGCNN_Cls_Encoder(nn.Module):
 
 
 class FoldNet_Decoder(nn.Module):
-    def __init__(self, num_clusters):
+    def __init__(self, num_clusters, num_features):
         super(FoldNet_Decoder, self).__init__()
         self.m = 2025  # 45 * 45.
         self.shape = 'sphere'
-        self.meshgrid = [[-100, 100, 45], [-100, 100, 45]]
+        self.meshgrid = [[0, 100, 45], [0, 100, 45]]
         self.sphere = np.load("sphere100.npy")
         self.gaussian = np.load("gaussian100.npy")
+        self.num_features = num_features
         if self.shape == 'plane':
             self.folding1 = nn.Sequential(
                 nn.Conv1d(512 + 2, 512, 1),
@@ -255,7 +270,7 @@ class FoldNet_Decoder(nn.Module):
 
         lin_features_len = 512
         self.embedding = nn.Linear(lin_features_len, num_clusters, bias=False)
-        self.deembedding = nn.Linear(num_clusters, lin_features_len, bias=False)
+        self.deembedding = nn.Linear(self.num_features, lin_features_len, bias=False)
 
     def build_grid(self, batch_size):
         if self.shape == 'sphere':
@@ -272,8 +287,8 @@ class FoldNet_Decoder(nn.Module):
 
     def forward(self, x):
 
-        #         x = self.deembedding(x)
-        #         x = x.unsqueeze(1)
+        x = self.deembedding(x)
+        x = x.unsqueeze(1)
         x = x.transpose(1, 2).repeat(1, 1, self.m)  # (batch_size, feat_dims, num_points)
         points = self.build_grid(x.shape[0]).transpose(1,
                                                        2)  # (batch_size, 2, num_points) or (batch_size, 3, num_points)
@@ -318,11 +333,12 @@ class DGCNN_Cls_Classifier(nn.Module):
 
 
 class ReconstructionNet(nn.Module):
-    def __init__(self, encoder, num_clusters):
+    def __init__(self, encoder, num_clusters, num_features):
         super(ReconstructionNet, self).__init__()
         self.num_cluster = num_clusters
-        self.encoder = DGCNN_Cls_Encoder(num_clusters)
-        self.decoder = FoldNet_Decoder(num_clusters)
+        self.num_features = num_features
+        self.encoder = DGCNN_Cls_Encoder(num_clusters, num_features)
+        self.decoder = FoldNet_Decoder(num_clusters, num_features)
         self.loss = ChamferLoss()
 
     def forward(self, input):

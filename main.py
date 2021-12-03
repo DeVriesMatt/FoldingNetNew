@@ -24,7 +24,7 @@ if __name__ == '__main__':
     output_dir = args.output_dir
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    to_eval = "ReconstructionNet" + "(" + "'{0}'".format("dgcnn_cls") + ", num_clusters=5)"
+    to_eval = "ReconstructionNet" + "(" + "'{0}'".format("dgcnn_cls") + ", num_clusters=5, num_features=50)"
     model = eval(to_eval)
     model = model.to(device)
 
