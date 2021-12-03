@@ -47,8 +47,7 @@ if __name__ == '__main__':
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     dataloader_inf = DataLoader(dataset, batch_size=1, shuffle=False)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0,
-                                 amsgrad=False)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.000001, weight_decay=0)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     writer = SummaryWriter(log_dir=output_dir + 'runs/' + name + '_{}feats_{}shape'.format(num_features,
@@ -79,9 +78,7 @@ if __name__ == '__main__':
             with torch.set_grad_enabled(True):
                 output, feature, embedding, clustering_out, fold1 = model(inputs)
 
-                loss_rec = model.get_loss(inputs, output)
-
-                loss = loss_rec
+                loss = model.get_loss(inputs, output)
                 # ===================backward====================
                 optimizer.zero_grad()
                 loss.backward()
@@ -98,7 +95,7 @@ if __name__ == '__main__':
                                                                                 i,
                                                                                 len(dataloader),
                                                                                 loss.item()/batch_size,
-                                                                                loss_rec.item()/batch_size,))
+                                                                                loss.item()/batch_size,))
 
         # ===================log========================
         total_loss = running_loss/len(dataloader)
