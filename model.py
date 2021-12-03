@@ -236,10 +236,10 @@ class DGCNN_Cls_Encoder(nn.Module):
 
 
 class FoldNet_Decoder(nn.Module):
-    def __init__(self, num_clusters, num_features):
+    def __init__(self, num_clusters, num_features, shape):
         super(FoldNet_Decoder, self).__init__()
         self.m = 2025  # 45 * 45.
-        self.shape = 'sphere'
+        self.shape = shape
         self.meshgrid = [[0, 100, 45], [0, 100, 45]]
         self.sphere = np.load("sphere100.npy")
         self.gaussian = np.load("gaussian100.npy")
@@ -333,12 +333,12 @@ class DGCNN_Cls_Classifier(nn.Module):
 
 
 class ReconstructionNet(nn.Module):
-    def __init__(self, encoder, num_clusters, num_features):
+    def __init__(self, encoder, num_clusters, num_features, shape):
         super(ReconstructionNet, self).__init__()
         self.num_cluster = num_clusters
         self.num_features = num_features
         self.encoder = DGCNN_Cls_Encoder(num_clusters, num_features)
-        self.decoder = FoldNet_Decoder(num_clusters, num_features)
+        self.decoder = FoldNet_Decoder(num_clusters, num_features, shape)
         self.loss = ChamferLoss()
 
     def forward(self, input):
