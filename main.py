@@ -28,7 +28,7 @@ if __name__ == '__main__':
     shape = args.shape
 
     model_name = 'FoldingNetNew_{}feats_{}shape'.format(num_features, shape)
-    f, name_net, saved_to, name_txt = reports(model_name, output_dir)
+    f, name_net, saved_to, name_txt, name = reports(model_name, output_dir)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     to_eval = "ReconstructionNet" + "(" + "'{0}'".format("dgcnn_cls") + ", num_clusters=5, " \
@@ -51,7 +51,7 @@ if __name__ == '__main__':
                                  amsgrad=False)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
-    writer = SummaryWriter(log_dir=output_dir + 'runs/' + name_net + '_{}feats_{}shape'.format(num_features,
+    writer = SummaryWriter(log_dir=output_dir + 'runs/' + name + '_{}feats_{}shape'.format(num_features,
                                                                                                shape))
     date_time = str(datetime.datetime.now()).replace(" ", "_").replace("-", "_")[:-7]
     num_epochs = 500

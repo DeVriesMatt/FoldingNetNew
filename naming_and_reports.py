@@ -35,4 +35,4 @@ def reports(model_name, output_dir):
     pretrained = os.path.join(output_dir + 'nets', pretrained)
     f = open(name_txt, 'w')
 
-    return f, name_net, pretrained, name_txt
+    return f, name_net, pretrained, name_txt, name
