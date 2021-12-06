@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import datetime
 from naming_and_reports import *
+from datetime import date, time
 
 
 def create_dir_if_not_exist(path):
@@ -50,10 +51,22 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=0.000001, weight_decay=0)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
-    writer = SummaryWriter(log_dir=output_dir + 'runs/' + name + '_{}feats_{}shape'.format(num_features,
-                                                                                               shape))
+    # Logging
+    writer_logging = output_dir + 'runs/' + name + '_{}feats_{}shape'.format(num_features, shape)
+    writer = SummaryWriter(log_dir=writer_logging)
     date_time = str(datetime.datetime.now()).replace(" ", "_").replace("-", "_")[:-7]
     num_epochs = 500
+
+    print_both(f, 'Date: ' + date_time)
+    print_both(f, 'Training model: ' + name)
+    print_both(f, 'Number of epochs: {}'.format(num_epochs))
+    print_both(f, 'Number of features: {}'.format(num_features))
+    print_both(f, 'Shape used: {}'.format(shape))
+    print_both(f, 'Output directory of nets: ' + name_net + '.pt')
+    print_both(f, 'Output directory of reports ' + name_txt)
+    print_both(f, 'Output directory of tensorboard logging ' + writer_logging)
+    f.close()
+
     total_loss = 0.
     rec_loss = 0.
     clus_loss = 0.
@@ -66,7 +79,9 @@ if __name__ == '__main__':
     for epoch in range(num_epochs):
         batch_num = 1
         running_loss = 0.
+        f = open(name_txt, 'a')
         print_both(f, 'Training epoch {}'.format(epoch))
+        f.close()
         model.train()
         batches = []
 
@@ -84,12 +99,13 @@ if __name__ == '__main__':
                 loss.backward()
                 optimizer.step()
 
-            running_loss += float(loss)
+            running_loss += float(loss)/batch_size
             batch_num += 1
             writer.add_scalar('/Loss' + 'Batch', loss.item()/batch_size, (i + 1) * (epoch + 1))
             lr = np.asarray(optimizer.param_groups[0]['lr'])
 
             if i % 10 == 0:
+                f = open(name_txt, 'a')
                 print_both(f, '[%d/%d][%d/%d]\tLossTot: %.4f\tLossRec: %.4f' % (epoch,
                                                                                 num_epochs,
                                                                                 i,
@@ -97,6 +113,7 @@ if __name__ == '__main__':
                                                                                 loss.item()/batch_size,
                                                                                 loss.item()/batch_size,))
 
+                f.close()
         # ===================log========================
         total_loss = running_loss/len(dataloader)
         if total_loss < best_loss:
@@ -106,13 +123,17 @@ if __name__ == '__main__':
                           'loss': running_loss}
             best_loss = total_loss
             create_dir_if_not_exist(output_dir)
-            print('Saving model to:' + name_net + '.pt' + ' with loss = {}'
-                  .format(running_loss) + ' at epoch {}'.format(epoch))
+            f = open(name_txt, 'a')
+            print_both(f, 'Saving model to:' + name_net + '.pt' + ' with loss = {}'
+                  .format(total_loss) + ' at epoch {}'.format(epoch))
             torch.save(checkpoint, name_net + '.pt')
             print_both(f, 'epoch [{}/{}], loss:{}'.format(epoch + 1, num_epochs, total_loss))
+            f.close()
 
+        f = open(name_txt, 'a')
         print_both(f, 'epoch [{}/{}], loss:{:.4f}, Rec loss:{:.4f}'.format(epoch + 1,
                                                                            num_epochs,
                                                                            total_loss,
                                                                            total_loss))
-    f.close()
+        f.close()
+
