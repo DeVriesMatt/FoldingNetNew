@@ -1,0 +1,9 @@
+Could not find conda environment: dcc
+You can list all discoverable environments with `conda info --envs`.
+
+Traceback (most recent call last):
+  File "main.py", line 1, in <module>
+    from dataset import *
+  File "/home/mvries/FoldingNetNew/dataset.py", line 1, in <module>
+    import torch
+ModuleNotFoundError: No module named 'torch'
