@@ -6,6 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 import datetime
 from naming_and_reports import *
 from datetime import date, time
+from utils import *
 
 
 def create_dir_if_not_exist(path):
@@ -114,6 +115,10 @@ if __name__ == '__main__':
                                                                                 loss.item()/batch_size,))
 
                 f.close()
+                points = output[0].cpu().detach().numpy()
+                image = plot_to_image(plot_point_cloud(points))
+                writer.add_image("/Output point cloud".format(epoch + 1), image, (i + 1) * (epoch + 1))
+
         # ===================log========================
         total_loss = running_loss/len(dataloader)
         if total_loss < best_loss:
