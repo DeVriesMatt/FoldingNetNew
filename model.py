@@ -7,6 +7,7 @@ import itertools
 
 
 class Flatten(nn.Module):
+
     def forward(self, input):
         '''
         Note that input.size(0) is usually the batch size.
@@ -233,6 +234,7 @@ class DGCNN_Cls_Encoder(nn.Module):
             return feat, x0
         elif self.task == 'reconstruct':
             return feat, embedding, clustering_out  # (batch_size, 1, feat_dims)
+
 
 class FoldNet_Decoder(nn.Module):
     def __init__(self, num_clusters, num_features, shape):

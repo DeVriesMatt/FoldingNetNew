@@ -39,6 +39,7 @@ if __name__ == '__main__':
     model = eval(to_eval)
     model = model.to(device)
 
+    # Data loaders
     dataset = PointCloudDataset(df,
                                 root_dir,
                                 transform=None,
@@ -46,11 +47,19 @@ if __name__ == '__main__':
                                 target_transform=True)
 
     batch_size = 16
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     dataloader_inf = DataLoader(dataset, batch_size=1, shuffle=False)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.000001, weight_decay=0)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    # Optimisers and schedulers
+    # optimizer = torch.optim.SGD(model.parameters(), lr=0.0000001, momentum=0.9)
+    optimizer = torch.optim.Adam(model.parameters(),
+                                 lr=0.0001 * 16 / batch_size,
+                                 betas=(0.9, 0.999),
+                                 weight_decay=1e-6)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=0.00000001, weight_decay=0)
+    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    # scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, 0.0000001, 0.001)
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1)
 
     # Logging
     writer_logging = output_dir + 'runs/' + name + '_{}feats_{}shape'.format(num_features, shape)
@@ -77,6 +86,7 @@ if __name__ == '__main__':
     test_acc = []
     best_acc = 0.
     best_loss = 1000000000
+    iters = len(dataloader)
     for epoch in range(num_epochs):
         batch_num = 1
         running_loss = 0.
@@ -93,17 +103,19 @@ if __name__ == '__main__':
             # ===================forward=====================
             with torch.set_grad_enabled(True):
                 output, feature, embedding, clustering_out, fold1 = model(inputs)
-
+                optimizer.zero_grad()
                 loss = model.get_loss(inputs, output)
                 # ===================backward====================
-                optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 
             running_loss += float(loss)/batch_size
             batch_num += 1
             writer.add_scalar('/Loss' + 'Batch', loss.item()/batch_size, (i + 1) * (epoch + 1))
+            # print((i + 1) * (epoch + 1))
+            print(loss.item()/batch_size)
             lr = np.asarray(optimizer.param_groups[0]['lr'])
+            print(lr)
 
             if i % 10 == 0:
                 f = open(name_txt, 'a')
