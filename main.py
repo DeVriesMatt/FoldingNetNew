@@ -86,7 +86,7 @@ if __name__ == '__main__':
     test_acc = []
     best_acc = 0.
     best_loss = 1000000000
-    iters = len(dataloader)
+    niter = 1
     for epoch in range(num_epochs):
         batch_num = 1
         running_loss = 0.
@@ -111,11 +111,10 @@ if __name__ == '__main__':
 
             running_loss += float(loss)/batch_size
             batch_num += 1
-            writer.add_scalar('/Loss' + 'Batch', loss.item()/batch_size, (i + 1) * (epoch + 1))
-            # print((i + 1) * (epoch + 1))
-            print(loss.item()/batch_size)
+            writer.add_scalar('/Loss' + 'Batch', loss.item()/batch_size, niter)
+            niter += 1
+
             lr = np.asarray(optimizer.param_groups[0]['lr'])
-            print(lr)
 
             if i % 10 == 0:
                 f = open(name_txt, 'a')
@@ -129,7 +128,7 @@ if __name__ == '__main__':
                 f.close()
                 points = output[0].cpu().detach().numpy()
                 image = plot_to_image(plot_point_cloud(points))
-                writer.add_image("/Output point cloud".format(epoch + 1), image, (i + 1) * (epoch + 1))
+                writer.add_image("/Output point cloud{}".format(niter), image, niter)
 
         # ===================log========================
         total_loss = running_loss/len(dataloader)
