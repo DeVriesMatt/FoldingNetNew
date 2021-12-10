@@ -1,3 +1,5 @@
+import torch
+
 from dataset import *
 from model import *
 import argparse
@@ -7,6 +9,7 @@ import datetime
 from naming_and_reports import *
 from datetime import date, time
 from utils import *
+from chamfer import *
 
 
 def create_dir_if_not_exist(path):
@@ -21,6 +24,7 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir', default='./', type=str)
     parser.add_argument('--num_features', default=50, type=int)
     parser.add_argument('--shape', default='sphere', type=str)
+    parser.add_argument('--load_path', default=None)
 
     args = parser.parse_args()
     df = args.dataframe_path
@@ -28,6 +32,7 @@ if __name__ == '__main__':
     output_dir = args.output_dir
     num_features = args.num_features
     shape = args.shape
+    load_path = args.load_path
 
     model_name = 'FoldingNetNew_{}feats_{}shape'.format(num_features, shape)
     f, name_net, saved_to, name_txt, name = reports(model_name, output_dir)
@@ -37,6 +42,13 @@ if __name__ == '__main__':
                                                                         "num_features=num_features, " \
                                                                         "shape=shape)"
     model = eval(to_eval)
+
+    if load_path:
+        try:
+            model.load_state_dict(torch.load(load_path)['model_state_dict'])
+            print_both('Loading model from ' + load_path)
+        except:
+            print_both('Model either does not exist os is the wrong path')
     model = model.to(device)
 
     # Data loaders
@@ -52,6 +64,7 @@ if __name__ == '__main__':
 
     # Optimisers and schedulers
     # optimizer = torch.optim.SGD(model.parameters(), lr=0.0000001, momentum=0.9)
+    criterion = ChamferLoss()
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=0.0001 * 16 / batch_size,
                                  betas=(0.9, 0.999),
@@ -104,14 +117,14 @@ if __name__ == '__main__':
             with torch.set_grad_enabled(True):
                 output, feature, embedding, clustering_out, fold1 = model(inputs)
                 optimizer.zero_grad()
-                loss = model.get_loss(inputs, output)
+                loss = criterion(inputs, output)
                 # ===================backward====================
                 loss.backward()
                 optimizer.step()
 
-            running_loss += float(loss)/batch_size
+            running_loss += loss.detach().item()/batch_size
             batch_num += 1
-            writer.add_scalar('/Loss' + 'Batch', loss.item()/batch_size, niter)
+            writer.add_scalar('/Loss' + 'Batch', loss.detach().item()/batch_size, niter)
             niter += 1
 
             lr = np.asarray(optimizer.param_groups[0]['lr'])
@@ -122,13 +135,13 @@ if __name__ == '__main__':
                                                                                 num_epochs,
                                                                                 i,
                                                                                 len(dataloader),
-                                                                                loss.item()/batch_size,
-                                                                                loss.item()/batch_size,))
+                                                                                loss.detach().item()/batch_size,
+                                                                                loss.detach().item()/batch_size,))
 
                 f.close()
-                points = output[0].cpu().detach().numpy()
-                image = plot_to_image(plot_point_cloud(points))
-                writer.add_image("/Output point cloud{}".format(niter), image, niter)
+                # points = output[0].cpu().detach().numpy()
+                # image = plot_to_image(plot_point_cloud(points))
+                # writer.add_image("/Output point cloud{}".format(niter), image, niter)
 
         # ===================log========================
         total_loss = running_loss/len(dataloader)
