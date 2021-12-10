@@ -23,7 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataframe_path', default='./', type=str)
     parser.add_argument('--output_dir', default='./', type=str)
     parser.add_argument('--num_features', default=50, type=int)
-    parser.add_argument('--shape', default='sphere', type=str)
+    parser.add_argument('--shape', default='plane', type=str)
     parser.add_argument('--load_path', default=None)
 
     args = parser.parse_args()
@@ -48,7 +48,7 @@ if __name__ == '__main__':
             model.load_state_dict(torch.load(load_path)['model_state_dict'])
             print_both(f, 'Loading model from ' + load_path)
         except:
-            print_both('Model either does not exist os is the wrong path')
+            print_both(f, 'Model either does not exist os is the wrong path')
     model = model.to(device)
 
     # Data loaders
