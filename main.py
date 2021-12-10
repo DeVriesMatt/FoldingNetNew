@@ -46,7 +46,7 @@ if __name__ == '__main__':
     if load_path:
         try:
             model.load_state_dict(torch.load(load_path)['model_state_dict'])
-            print_both('Loading model from ' + load_path)
+            print_both(f, 'Loading model from ' + load_path)
         except:
             print_both('Model either does not exist os is the wrong path')
     model = model.to(device)
