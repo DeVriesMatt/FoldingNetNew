@@ -4,6 +4,7 @@ import torch.nn.init as init
 import torch.nn.functional as F
 import numpy as np
 import itertools
+from tearingnet import *
 
 
 class Flatten(nn.Module):
@@ -334,18 +335,26 @@ class DGCNN_Cls_Classifier(nn.Module):
 
 
 class ReconstructionNet(nn.Module):
-    def __init__(self, encoder, num_clusters, num_features, shape):
+    def __init__(self, decoder, num_clusters, num_features, shape):
         super(ReconstructionNet, self).__init__()
         self.num_cluster = num_clusters
         self.num_features = num_features
         self.encoder = DGCNN_Cls_Encoder(num_clusters, num_features)
-        self.decoder = FoldNet_Decoder(num_clusters, num_features, shape)
+        self.decoder_decision = decoder
+        if decoder == 'tearing':
+            self.decoder = TearingNetGraphModel()
+        else:
+            self.decoder = FoldNet_Decoder(num_clusters, num_features, shape)
         self.loss = ChamferLoss()
 
     def forward(self, input):
         feature, embedding, clustering_out = self.encoder(input)
-        output, fold1 = self.decoder(embedding)
-        return output, feature, embedding, clustering_out, fold1
+        if self.decoder_decision == 'tearing':
+            pc0, pc1, pc2, grid1, graph_wght = self.decoder(embedding)
+            return pc2, feature, embedding, clustering_out, (pc0, pc1, grid1, graph_wght)
+        else:
+            output, fold1 = self.decoder(embedding)
+            return output, feature, embedding, clustering_out, fold1
 
     def get_parameter(self):
         return list(self.encoder.parameters()) + list(self.decoder.parameters())

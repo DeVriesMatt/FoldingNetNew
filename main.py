@@ -25,6 +25,9 @@ if __name__ == '__main__':
     parser.add_argument('--num_features', default=50, type=int)
     parser.add_argument('--shape', default='plane', type=str)
     parser.add_argument('--load_path', default=None)
+    parser.add_argument('--learning_rate', default=0.00001, type=float)
+    parser.add_argument('--batch_size', default=16, type=int)
+    parser.add_argument('--decoder', default='tearing', type=str)
 
     args = parser.parse_args()
     df = args.dataframe_path
@@ -33,23 +36,32 @@ if __name__ == '__main__':
     num_features = args.num_features
     shape = args.shape
     load_path = args.load_path
+    learning_rate = args.learning_rate
+    batch_size = args.batch_size
+    decoder = args.decoder
 
     model_name = 'FoldingNetNew_{}feats_{}shape'.format(num_features, shape)
     f, name_net, saved_to, name_txt, name = reports(model_name, output_dir)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    to_eval = "ReconstructionNet" + "(" + "'{0}'".format("dgcnn_cls") + ", num_clusters=5, " \
+    to_eval = "ReconstructionNet" + "(" + "'{0}'".format(decoder) + ", num_clusters=5, " \
                                                                         "num_features=num_features, " \
                                                                         "shape=shape)"
     model = eval(to_eval)
+    model = model.to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(),
+                                 lr=learning_rate * 16 / batch_size,
+                                 betas=(0.9, 0.999),
+                                 weight_decay=1e-6)
 
     if load_path:
         try:
             model.load_state_dict(torch.load(load_path)['model_state_dict'])
+            optimizer.load_state_dict(torch.load(load_path)['optimizer_state_dict'])
             print_both(f, 'Loading model from ' + load_path)
         except:
-            print_both(f, 'Model either does not exist os is the wrong path')
-    model = model.to(device)
+            print_both(f, 'Model either does not exist or is the wrong path.')
 
     # Data loaders
     dataset = PointCloudDataset(df,
@@ -58,17 +70,12 @@ if __name__ == '__main__':
                                 img_size=400,
                                 target_transform=True)
 
-    batch_size = 16
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     dataloader_inf = DataLoader(dataset, batch_size=1, shuffle=False)
 
     # Optimisers and schedulers
     # optimizer = torch.optim.SGD(model.parameters(), lr=0.0000001, momentum=0.9)
-    criterion = ChamferLoss()
-    optimizer = torch.optim.Adam(model.parameters(),
-                                 lr=0.0001 * 16 / batch_size,
-                                 betas=(0.9, 0.999),
-                                 weight_decay=1e-6)
+    criterion = ChamferLoss1()
     # optimizer = torch.optim.Adam(model.parameters(), lr=0.00000001, weight_decay=0)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     # scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, 0.0000001, 0.001)
