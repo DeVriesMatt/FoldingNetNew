@@ -124,7 +124,7 @@ if __name__ == '__main__':
             with torch.set_grad_enabled(True):
                 output, feature, embedding, clustering_out, fold1 = model(inputs)
                 optimizer.zero_grad()
-                loss = criterion(inputs, output)
+                loss = model.get_loss(inputs, output)
                 # ===================backward====================
                 loss.backward()
                 optimizer.step()
