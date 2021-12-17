@@ -186,10 +186,12 @@ class DGCNN_Cls_Encoder(nn.Module):
                                    self.bn5,
                                    nn.LeakyReLU(negative_slope=0.2))
 
-        lin_features_len = 512
-        self.flatten = Flatten()
-        self.embedding = nn.Linear(lin_features_len, self.num_features, bias=False)
-        self.deembedding = nn.Linear(self.num_features, lin_features_len, bias=False)
+        self.lin_features_len = 512
+        if self.num_features < self.lin_features_len:
+            self.flatten = Flatten()
+            self.embedding = nn.Linear(self.lin_features_len, self.num_features, bias=False)
+            self.deembedding = nn.Linear(self.num_features, self.lin_features_len, bias=False)
+
         self.clustering = ClusterlingLayer(self.num_features, self.num_clusters)
 
     def forward(self, x):
@@ -219,12 +221,15 @@ class DGCNN_Cls_Encoder(nn.Module):
         feat = x.unsqueeze(1)  # (batch_size, feat_dims) -> (batch_size, 1, feat_dims)
         # feat = x
         # print(feat.shape)
-        x = self.flatten(feat)
-        embedding = self.embedding(x)
+        if self.num_features < self.lin_features_len:
+            x = self.flatten(feat)
+            embedding = self.embedding(x)
         #         print(embedding.shape)
         #         print(embedding.shape)
         #         print(feat.shape)
         #         print(torch.squeeze(feat).shape)
+        if self.num_features == self.lin_features_len:
+            embedding = torch.reshape(torch.squeeze(feat), (batch_size, 512))
 
         #         clustering_input = torch.reshape(torch.squeeze(feat),(batch_size, 512))
         clustering_input = embedding
@@ -270,9 +275,10 @@ class FoldNet_Decoder(nn.Module):
             nn.Conv1d(512, 3, 1),
         )
 
-        lin_features_len = 512
-        self.embedding = nn.Linear(lin_features_len, num_clusters, bias=False)
-        self.deembedding = nn.Linear(self.num_features, lin_features_len, bias=False)
+        self.lin_features_len = 512
+        if self.num_features < self.lin_features_len:
+            self.embedding = nn.Linear(self.lin_features_len, num_clusters, bias=False)
+            self.deembedding = nn.Linear(self.num_features, self.lin_features_len, bias=False)
 
     def build_grid(self, batch_size):
         if self.shape == 'sphere':
@@ -289,8 +295,12 @@ class FoldNet_Decoder(nn.Module):
 
     def forward(self, x):
 
-        x = self.deembedding(x)
-        x = x.unsqueeze(1)
+        if self.num_features < self.lin_features_len:
+            x = self.deembedding(x)
+            x = x.unsqueeze(1)
+
+        else:
+            x = x.unsqueeze(1)
         x = x.transpose(1, 2).repeat(1, 1, self.m)  # (batch_size, feat_dims, num_points)
         points = self.build_grid(x.shape[0]).transpose(1,
                                                        2)  # (batch_size, 2, num_points) or (batch_size, 3, num_points)

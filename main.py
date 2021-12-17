@@ -40,7 +40,7 @@ if __name__ == '__main__':
     batch_size = args.batch_size
     decoder = args.decoder
 
-    model_name = 'FoldingNetNew_{}feats_{}shape'.format(num_features, shape)
+    model_name = 'FoldingNetNew_{}feats_{}shape_{}decoder'.format(num_features, shape, decoder)
     f, name_net, saved_to, name_txt, name = reports(model_name, output_dir)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -49,6 +49,8 @@ if __name__ == '__main__':
                                                                         "shape=shape)"
     model = eval(to_eval)
     model = model.to(device)
+
+    print_both(f, 'Number of trainable parameters: {}'.format(sum(p.numel() for p in model.parameters() if p.requires_grad)))
 
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=learning_rate * 16 / batch_size,
@@ -82,7 +84,7 @@ if __name__ == '__main__':
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1)
 
     # Logging
-    writer_logging = output_dir + 'runs/' + name + '_{}feats_{}shape'.format(num_features, shape)
+    writer_logging = output_dir + 'runs/' + name
     writer = SummaryWriter(log_dir=writer_logging)
     date_time = str(datetime.datetime.now()).replace(" ", "_").replace("-", "_")[:-7]
     num_epochs = 500
@@ -156,7 +158,7 @@ if __name__ == '__main__':
             checkpoint = {'model_state_dict': model.state_dict(),
                           'optimizer_state_dict': optimizer.state_dict(),
                           'epoch': epoch,
-                          'loss': running_loss}
+                          'loss': total_loss}
             best_loss = total_loss
             create_dir_if_not_exist(output_dir)
             f = open(name_txt, 'a')
