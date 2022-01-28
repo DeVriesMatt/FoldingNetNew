@@ -28,6 +28,8 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', default=0.00001, type=float)
     parser.add_argument('--batch_size', default=16, type=int)
     parser.add_argument('--decoder', default='tearing', type=str)
+    parser.add_argument('--train_on_all', default=False, type=bool)
+    parser.add_argument('--component', default='cell', type=str)
 
     args = parser.parse_args()
     df = args.dataframe_path
@@ -39,8 +41,13 @@ if __name__ == '__main__':
     learning_rate = args.learning_rate
     batch_size = args.batch_size
     decoder = args.decoder
+    train_all = args.train_on_all
+    cell_component = args.component
 
-    model_name = 'FoldingNetNew_{}feats_{}shape_{}decoder'.format(num_features, shape, decoder)
+    model_name = 'FoldingNetNew_{}feats_{}shape_{}decoder_trainall{}'.format(num_features,
+                                                                             shape,
+                                                                             decoder,
+                                                                             train_all)
     f, name_net, saved_to, name_txt, name = reports(model_name, output_dir)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -66,11 +73,19 @@ if __name__ == '__main__':
             print_both(f, 'Model either does not exist or is the wrong path.')
 
     # Data loaders
-    dataset = PointCloudDataset(df,
-                                root_dir,
-                                transform=None,
-                                img_size=400,
-                                target_transform=True)
+    if train_all:
+        dataset = PointCloudDatasetAll(df,
+                                       root_dir,
+                                       transform=None,
+                                       img_size=400,
+                                       target_transform=True,
+                                       cell_component=cell_component)
+    else:
+        dataset = PointCloudDataset(df,
+                                    root_dir,
+                                    transform=None,
+                                    img_size=400,
+                                    target_transform=True)
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     dataloader_inf = DataLoader(dataset, batch_size=1, shuffle=False)
