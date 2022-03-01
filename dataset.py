@@ -9,7 +9,7 @@ from pyntcloud import PyntCloud
 class PointCloudDataset(Dataset):
     def __init__(self, annotations_file,
                  img_dir,
-                 img_size=64,
+                 img_size=400,
                  label_col='Treatment',
                  transform=None,
                  target_transform=None):
@@ -56,7 +56,7 @@ class PointCloudDataset(Dataset):
 class PointCloudDatasetAll(Dataset):
     def __init__(self, annotations_file,
                  img_dir,
-                 img_size=64,
+                 img_size=400,
                  label_col='Treatment',
                  transform=None,
                  target_transform=None,
