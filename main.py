@@ -30,6 +30,7 @@ if __name__ == '__main__':
     parser.add_argument('--decoder', default='tearing', type=str)
     parser.add_argument('--train_on_all', default=False, type=bool)
     parser.add_argument('--component', default='cell', type=str)
+    parser.add_argument('--centring_only', default=False, type=bool)
 
     args = parser.parse_args()
     df = args.dataframe_path
@@ -43,11 +44,13 @@ if __name__ == '__main__':
     decoder = args.decoder
     train_all = args.train_on_all
     cell_component = args.component
+    centring_only = args.centring_only
 
-    model_name = 'FoldingNetNew_{}feats_{}shape_{}decoder_trainall{}'.format(num_features,
-                                                                             shape,
-                                                                             decoder,
-                                                                             train_all)
+    model_name = 'FoldingNetNew_{}feats_{}shape_{}decoder_trainall{}_centringonly{}'.format(num_features,
+                                                                                            shape,
+                                                                                            decoder,
+                                                                                            train_all,
+                                                                                            centring_only)
     f, name_net, saved_to, name_txt, name = reports(model_name, output_dir)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -56,6 +59,10 @@ if __name__ == '__main__':
                                                                         "shape=shape)"
     model = eval(to_eval)
     model = model.to(device)
+
+    # TODO: take away after testing normalisation
+    print_both(f, 'Trying different normalisation. Only centring each cell')
+    # TODO: _____________________________________
 
     print_both(f, 'Number of trainable parameters: {}'.format(sum(p.numel() for p in model.parameters() if p.requires_grad)))
 
@@ -79,13 +86,15 @@ if __name__ == '__main__':
                                        transform=None,
                                        img_size=400,
                                        target_transform=True,
+                                       centring_only=centring_only,
                                        cell_component=cell_component)
     else:
         dataset = PointCloudDataset(df,
                                     root_dir,
                                     transform=None,
                                     img_size=400,
-                                    target_transform=True)
+                                    target_transform=True,
+                                    centring_only=centring_only)
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     dataloader_inf = DataLoader(dataset, batch_size=1, shuffle=False)
