@@ -46,7 +46,8 @@ class PointCloudDataset(Dataset):
             mean = torch.mean(image, 0)
         # mean = torch.tensor([[13.4828, 26.5144, 24.4187]])
         # std = torch.tensor([[9.2821, 20.4512, 18.9049]])
-            image = (image - mean)
+            std = torch.tensor([[20., 20., 20.]])
+            image = (image - mean) / std
         # / std
         # TODO: _____________________________________________
         else:
@@ -115,7 +116,8 @@ class PointCloudDatasetAll(Dataset):
         # TODO: take away after testing
         if self.centring_only:
             mean = torch.mean(image, 0)
-            image = (image - mean)
+            std = torch.tensor([[20., 20., 20.]])
+            image = (image - mean) / std
 
         else:
             mean = torch.tensor([[13.4828, 26.5144, 24.4187]])
