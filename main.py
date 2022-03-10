@@ -30,7 +30,8 @@ if __name__ == '__main__':
     parser.add_argument('--decoder', default='tearing', type=str)
     parser.add_argument('--train_on_all', default=False, type=bool)
     parser.add_argument('--component', default='cell', type=str)
-    parser.add_argument('--centring_only', default=False, type=bool)
+    parser.add_argument('--centring_only', default=True, type=bool)
+    parser.add_argument('--train_both', default=True, type=bool)
 
     args = parser.parse_args()
     df = args.dataframe_path
@@ -45,12 +46,16 @@ if __name__ == '__main__':
     train_all = args.train_on_all
     cell_component = args.component
     centring_only = args.centring_only
+    train_both = args.train_both
 
-    model_name = 'FoldingNetNew_{}feats_{}shape_{}decoder_trainall{}_centringonly{}'.format(num_features,
-                                                                                            shape,
-                                                                                            decoder,
-                                                                                            train_all,
-                                                                                            centring_only)
+    model_name = 'FoldingNetNew_{}feats_{}shape_{}decoder_trainall{}_centringonly{}_train_both{}'.format(
+        num_features,
+        shape,
+        decoder,
+        train_all,
+        centring_only,
+        train_both)
+
     f, name_net, saved_to, name_txt, name = reports(model_name, output_dir)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -80,21 +85,32 @@ if __name__ == '__main__':
             print_both(f, 'Model either does not exist or is the wrong path.')
 
     # Data loaders
-    if train_all:
-        dataset = PointCloudDatasetAll(df,
-                                       root_dir,
-                                       transform=None,
-                                       img_size=400,
-                                       target_transform=True,
-                                       centring_only=centring_only,
-                                       cell_component=cell_component)
+    if train_both:
+        dataset = PointCloudDatasetAllBoth(
+            df,
+            root_dir,
+            transform=None,
+            img_size=400,
+            target_transform=True,
+            centring_only=centring_only,
+            cell_component=cell_component)
+
     else:
-        dataset = PointCloudDataset(df,
-                                    root_dir,
-                                    transform=None,
-                                    img_size=400,
-                                    target_transform=True,
-                                    centring_only=centring_only)
+        if train_all:
+            dataset = PointCloudDatasetAll(df,
+                                           root_dir,
+                                           transform=None,
+                                           img_size=400,
+                                           target_transform=True,
+                                           centring_only=centring_only,
+                                           cell_component=cell_component)
+        else:
+            dataset = PointCloudDataset(df,
+                                        root_dir,
+                                        transform=None,
+                                        img_size=400,
+                                        target_transform=True,
+                                        centring_only=centring_only)
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     dataloader_inf = DataLoader(dataset, batch_size=1, shuffle=False)
